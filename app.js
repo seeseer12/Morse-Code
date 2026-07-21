@@ -72,6 +72,8 @@ let lastBlinkTime = 0;
 let lastActivityTime = 0;
 let currentPattern = '';
 let decodedText = '';
+let closedFrames = 0;
+let openFrames = 0;
 
 function updateOutput() {
   output.textContent = encodeToMorse(input.value || '');
@@ -83,6 +85,8 @@ function resetDecoder() {
   lastBlinkTime = 0;
   lastActivityTime = 0;
   eyeClosed = false;
+  closedFrames = 0;
+  openFrames = 0;
   decodedOutput.textContent = 'Decoded text will appear here.';
 }
 
@@ -107,18 +111,22 @@ function handleBlink(isDot, now) {
 }
 
 function computeEar(landmarks, width, height) {
-  const points = landmarks.map((landmark) => [landmark.x * width, landmark.y * height]);
-  const leftEye = [points[1], points[2], points[3], points[4], points[5], points[6]];
-  const rightEye = [points[7], points[8], points[9], points[10], points[11], points[12]];
+  const getPoint = (index) => {
+    const landmark = landmarks[index];
+    return [landmark.x * width, landmark.y * height];
+  };
 
-  const earForEye = (eye) => {
-    const verticalA = Math.hypot(eye[1][0] - eye[5][0], eye[1][1] - eye[5][1]);
-    const verticalB = Math.hypot(eye[2][0] - eye[4][0], eye[2][1] - eye[4][1]);
-    const horizontal = Math.hypot(eye[0][0] - eye[3][0], eye[0][1] - eye[3][1]);
+  const eyeEar = (indices) => {
+    const [p1, p2, p3, p4, p5, p6] = indices.map(getPoint);
+    const verticalA = Math.hypot(p2[0] - p6[0], p2[1] - p6[1]);
+    const verticalB = Math.hypot(p3[0] - p5[0], p3[1] - p5[1]);
+    const horizontal = Math.hypot(p1[0] - p4[0], p1[1] - p4[1]);
     return horizontal > 0 ? (verticalA + verticalB) / (2 * horizontal) : 0;
   };
 
-  return (earForEye(leftEye) + earForEye(rightEye)) / 2;
+  const leftEyeEar = eyeEar([362, 385, 387, 263, 373, 380]);
+  const rightEyeEar = eyeEar([33, 160, 158, 133, 153, 144]);
+  return (leftEyeEar + rightEyeEar) / 2;
 }
 
 async function loadModel() {
@@ -178,17 +186,32 @@ async function startDecoder() {
         if (result.faceLandmarks && result.faceLandmarks.length > 0) {
           const landmarks = result.faceLandmarks[0];
           const ear = computeEar(landmarks, cameraVideo.videoWidth, cameraVideo.videoHeight);
-          if (ear < 0.22) {
-            if (!eyeClosed) {
+
+          if (ear < 0.24) {
+            closedFrames += 1;
+            openFrames = 0;
+            if (closedFrames >= 4 && !eyeClosed) {
               eyeClosed = true;
               blinkStartTime = now;
+              cameraStatus.textContent = 'Eyes closed — holding blink';
             }
-          } else if (eyeClosed) {
-            const blinkDuration = now - blinkStartTime;
-            const isDot = blinkDuration <= 350;
-            handleBlink(isDot, now);
-            eyeClosed = false;
+          } else {
+            if (eyeClosed) {
+              const blinkDuration = now - blinkStartTime;
+              const isDot = blinkDuration <= 350;
+              handleBlink(isDot, now);
+              eyeClosed = false;
+              closedFrames = 0;
+              openFrames = 0;
+            } else {
+              openFrames += 1;
+              if (openFrames >= 8) {
+                cameraStatus.textContent = 'Face detected — blink to decode';
+              }
+            }
           }
+        } else {
+          cameraStatus.textContent = 'Face not detected. Move into view.';
         }
       }
 
