@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Morse Blink is a real-time eye-blink Morse decoder. This GitHub Pages deployment hosts a polished landing page and Morse demo."
+    />
+    <title>Morse Blink</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">GitHub Pages • static preview</p>
+        <h1>Morse Blink</h1>
+        <p class="summary">
+          A real-time eye-blink Morse decoder built with Python, OpenCV, and MediaPipe.
+          This Pages site hosts the project landing page and an interactive Morse demo while the webcam-powered decoder runs locally.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#run-locally">Run it locally</a>
+          <a class="button secondary" href="#demo">Try the demo</a>
+        </div>
+      </header>
+
+      <section class="cards">
+        <article class="card">
+          <h2>What this project does</h2>
+          <p>
+            It detects blinks from a webcam, converts short and long blinks into Morse code, and decodes complete letters and words in real time.
+          </p>
+        </article>
+        <article class="card">
+          <h2>GitHub Pages note</h2>
+          <p>
+            GitHub Pages only serves static files, so the live webcam stream cannot run from Pages itself. The full camera experience is still available from the local Python app.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Quick start</h2>
+          <p>
+            Install the Python dependencies, launch the local app, and keep your face visible to the camera for decoding.
+          </p>
+        </article>
+      </section>
+
+      <section id="run-locally" class="panel">
+        <h2>Run it locally</h2>
+        <ol>
+          <li>Install dependencies from the repository requirements file.</li>
+          <li>Run the app with the webcam-enabled interface.</li>
+          <li>Use your face and eye blinks to spell out Morse code.</li>
+        </ol>
+        <pre><code>pip install -r requirements.txt
+python main.py --web</code></pre>
+      </section>
+
+      <section id="demo" class="panel demo-panel">
+        <div class="demo-copy">
+          <h2>Browser Morse demo</h2>
+          <p>Type a message and convert it to Morse code instantly.</p>
+        </div>
+        <label class="sr-only" for="text-input">Message to convert</label>
+        <textarea id="text-input" rows="5" placeholder="Type a message here...">SOS</textarea>
+        <div class="demo-actions">
+          <button id="convert-btn" type="button">Convert to Morse</button>
+          <button id="clear-btn" class="secondary-btn" type="button">Clear</button>
+        </div>
+        <output id="morse-output" class="output" aria-live="polite"></output>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
