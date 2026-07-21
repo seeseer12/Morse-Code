@@ -70,6 +70,21 @@ python main.py --web</code></pre>
         </div>
         <output id="morse-output" class="output" aria-live="polite"></output>
       </section>
+
+      <section class="panel camera-panel">
+        <div class="demo-copy">
+          <h2>Online camera access</h2>
+          <p>Allow this browser page to use your webcam directly. The stream runs in the browser and is ideal for a GitHub Pages deployment.</p>
+        </div>
+        <div class="camera-actions">
+          <button id="camera-btn" type="button">Start camera</button>
+          <button id="camera-stop-btn" class="secondary-btn" type="button">Stop camera</button>
+        </div>
+        <div class="camera-wrap">
+          <video id="camera-video" autoplay playsinline muted></video>
+        </div>
+        <p id="camera-status" class="camera-status">Camera is waiting for permission.</p>
+      </section>
     </main>
 
     <script src="app.js"></script>
