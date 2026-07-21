@@ -73,20 +73,21 @@ python main.py --web</code></pre>
 
       <section class="panel camera-panel">
         <div class="demo-copy">
-          <h2>Online camera access</h2>
-          <p>Allow this browser page to use your webcam directly. The stream runs in the browser and is ideal for a GitHub Pages deployment.</p>
+          <h2>Online blink decoder</h2>
+          <p>Allow this page to use your webcam. It will detect eye blinks in the browser and decode them as Morse letters in real time.</p>
         </div>
         <div class="camera-actions">
-          <button id="camera-btn" type="button">Start camera</button>
-          <button id="camera-stop-btn" class="secondary-btn" type="button">Stop camera</button>
+          <button id="camera-btn" type="button">Start decoder</button>
+          <button id="camera-stop-btn" class="secondary-btn" type="button">Stop decoder</button>
         </div>
         <div class="camera-wrap">
           <video id="camera-video" autoplay playsinline muted></video>
         </div>
         <p id="camera-status" class="camera-status">Camera is waiting for permission.</p>
+        <div id="decoded-output" class="output" aria-live="polite">Decoded text will appear here.</div>
       </section>
     </main>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>
