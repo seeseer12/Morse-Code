@@ -1,23 +1,24 @@
-"""Eye blink detection using MediaPipe Face Mesh and Eye Aspect Ratio (EAR)."""
+"""Eye blink detection using MediaPipe Face Landmarker and Eye Aspect Ratio (EAR)."""
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass
 from enum import Enum, auto
+from pathlib import Path
 
 import cv2
 import mediapipe as mp
 import numpy as np
+from mediapipe.tasks.python import vision
 
+MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "face_landmarker.task"
 
-# MediaPipe Face Mesh landmark indices for EAR calculation.
 LEFT_EYE = (362, 385, 387, 263, 373, 380)
 RIGHT_EYE = (33, 160, 158, 133, 153, 144)
 
 
 def _ear(landmarks, indices, width: int, height: int) -> float:
-    """Compute Eye Aspect Ratio from six landmark points."""
     points = np.array(
         [(landmarks[i].x * width, landmarks[i].y * height) for i in indices],
         dtype=np.float64,
@@ -37,16 +38,12 @@ class BlinkPhase(Enum):
 
 @dataclass
 class BlinkEvent:
-    """A completed blink with duration in seconds."""
-
     duration: float
     is_dot: bool
 
 
 @dataclass
 class FrameResult:
-    """Output from processing a single camera frame."""
-
     ear: float
     face_detected: bool
     phase: BlinkPhase
@@ -54,14 +51,6 @@ class FrameResult:
 
 
 class BlinkDetector:
-    """
-    Detects eye blinks from webcam frames.
-
-    Uses average EAR across both eyes. When EAR drops below `ear_threshold`,
-    eyes are considered closed. When they reopen, blink duration is measured
-    and classified as dot (short) or dash (long).
-    """
-
     def __init__(
         self,
         ear_threshold: float = 0.21,
@@ -76,24 +65,37 @@ class BlinkDetector:
         self._closed_frames = 0
         self._open_frames = 0
         self._close_start: float | None = None
+        self._frame_index = 0
 
-        self._face_mesh = mp.solutions.face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(
+                f"Face landmarker model not found at {MODEL_PATH}."
+            )
+
+        options = vision.FaceLandmarkerOptions(
+            base_options=mp.tasks.BaseOptions(model_asset_path=str(MODEL_PATH)),
+            running_mode=vision.RunningMode.VIDEO,
+            num_faces=1,
+            min_face_detection_confidence=0.5,
+            min_face_presence_confidence=0.5,
             min_tracking_confidence=0.5,
         )
+        self._landmarker = vision.FaceLandmarker.create_from_options(options)
 
     def process(self, frame: np.ndarray) -> FrameResult:
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         height, width = frame.shape[:2]
-        results = self._face_mesh.process(rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        timestamp_ms = int(self._frame_index * 1000 / 30)
+        self._frame_index += 1
 
-        if not results.multi_face_landmarks:
+        results = self._landmarker.detect_for_video(mp_image, timestamp_ms)
+
+        if not results.face_landmarks:
             self._reset_blink_state()
             return FrameResult(ear=0.0, face_detected=False, phase=BlinkPhase.OPEN)
 
-        landmarks = results.multi_face_landmarks[0].landmark
+        landmarks = results.face_landmarks[0]
         left = _ear(landmarks, LEFT_EYE, width, height)
         right = _ear(landmarks, RIGHT_EYE, width, height)
         ear = (left + right) / 2.0
@@ -120,7 +122,6 @@ class BlinkDetector:
                 self._closed_frames = 0
             return None
 
-        # CLOSED phase — waiting for eyes to reopen
         if eyes_closed:
             self._open_frames = 0
             return None
@@ -147,4 +148,4 @@ class BlinkDetector:
         self._close_start = None
 
     def close(self) -> None:
-        self._face_mesh.close()
+        self._landmarker.close()
